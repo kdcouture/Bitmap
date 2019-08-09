@@ -22,9 +22,12 @@ public class Lab4 {
             Lab4 bitmapModifier = new Lab4();
             BufferedImage img = bitmapModifier.readBMP("./src/main/resources/" + args[0]);
             try {
-                ImageIO.write(bitmapModifier.redify(img), "BMP", new File("./src/main/resources/redder" + args[1]));
-                ImageIO.write(bitmapModifier.checkers(img), "BMP", new File("./src/main/resources/checkers" + args[1]));
-                ImageIO.write(bitmapModifier.checkersZag(img), "BMP", new File("./src/main/resources/checkersZag" + args[1]));
+                if(args[2].equals("reddify"))
+                    ImageIO.write(bitmapModifier.redify(img), "BMP", new File("./src/main/resources/redder" + args[1]));
+                if(args[2].equals("checkers"))
+                    ImageIO.write(bitmapModifier.checkers(img), "BMP", new File("./src/main/resources/checkers" + args[1]));
+                if(args[2].equals("checkersZag"))
+                    ImageIO.write(bitmapModifier.checkersZag(img), "BMP", new File("./src/main/resources/checkersZag" + args[1]));
             }
             catch (IOException e) {
                 System.err.println(e);
