@@ -6,9 +6,10 @@ package Bitmap;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.awt.Color;
+import java.awt.image.ColorModel;
+import java.awt.image.WritableRaster;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
 
 public class Lab4 {
     public String getGreeting() {
@@ -17,11 +18,28 @@ public class Lab4 {
 
     public static void main(String[] args) {
         System.out.println(new Lab4().getGreeting());
-        BufferedImage img = Lab4.readBMP("./src/main/resources/goldhill.bmp");
-        System.out.println(img.getRGB(0,0)>>16&0xFF);
+        if(args.length == 3) {
+            Lab4 bitmapModifier = new Lab4();
+            BufferedImage img = bitmapModifier.readBMP("./src/main/resources/" + args[0]);
+            try {
+                if(args[2].equals("reddify"))
+                    ImageIO.write(bitmapModifier.redify(img), "BMP", new File("./src/main/resources/redder" + args[1]));
+                if(args[2].equals("checkers"))
+                    ImageIO.write(bitmapModifier.checkers(img), "BMP", new File("./src/main/resources/checkers" + args[1]));
+                if(args[2].equals("checkersZag"))
+                    ImageIO.write(bitmapModifier.checkersZag(img), "BMP", new File("./src/main/resources/checkersZag" + args[1]));
+            }
+            catch (IOException e) {
+                System.err.println(e);
+            }
+        }
+        else {
+            System.err.println("Invalid CL Args");
+        }
     }
 
-    public static BufferedImage readBMP(String path) {
+    // Read the bmp file.
+    public BufferedImage readBMP(String path) {
         File bmpFile = new File(path);
         BufferedImage img = null;
         try{
@@ -31,5 +49,136 @@ public class Lab4 {
             System.err.println(e);
         }
         return img;
+    }
+
+    public BufferedImage redify(BufferedImage img) {
+        System.out.println("Creating Redder Version...");
+        BufferedImage newImg = deepCopy(img);
+        for(int h = 0; h < img.getHeight(); h++){
+            for(int w = 0; w < img.getWidth(); w++) {
+                int rgbVal = img.getRGB(w,h)>>16&0xFF;
+                int redVal = rgbVal&0xFF;
+                int blueVal = rgbVal>>8&0xFF;
+                int greenVal = rgbVal>>16&0xFF;
+                redVal += 50;
+                if(redVal > 255) {
+                    redVal = 255;
+                }
+                int redderRgb = new Color(redVal, greenVal, blueVal).getRGB();
+                newImg.setRGB( w, h, redderRgb);
+            }
+        }
+        return newImg;
+    }
+
+    public BufferedImage checkersZag(BufferedImage img) {
+        System.out.println("Creating CheckersZag Version...");
+        BufferedImage newImg = deepCopy(img);
+        int checkerXCounter = 0;
+        int checkerYCounter = 0;
+        int CheckeredRgb = 0;
+        boolean isYChecker = false;
+        boolean isXChecker = false;
+        for(int h = 0; h < img.getHeight(); h++){
+            checkerYCounter++;
+            if(checkerYCounter == 25){
+                checkerYCounter = 0;
+                isYChecker = !isYChecker;
+            }
+            for(int w = 0; w < img.getWidth(); w++) {
+                checkerXCounter++;
+                if(checkerXCounter == 25){
+                    checkerXCounter = 0;
+                    isXChecker = !isXChecker;
+                }
+                int rgbVal = img.getRGB(w,h);
+                if(isXChecker && isYChecker) {
+                    CheckeredRgb = new Color(0, 0, 0).getRGB();
+                }
+                else {
+                    CheckeredRgb = rgbVal;
+                }
+                newImg.setRGB( w, h, CheckeredRgb);
+            }
+        }
+        return newImg;
+    }
+
+    public BufferedImage checkers(BufferedImage img) {
+        System.out.println("Creating Checkered Version...");
+        BufferedImage newImg = deepCopy(img);
+        int CheckeredRgb = 0;
+        boolean alternate = false;
+        for(int h = 0; h < img.getHeight(); h++){
+
+            for(int w = 0; w < img.getWidth(); w++) {
+                int rgbVal = img.getRGB(w,h);
+                if(alternate) {if(w%100 < 50) { // && h%100 < 50
+                        CheckeredRgb = new Color(0, 0, 0).getRGB();
+                    }
+                    else {
+                        CheckeredRgb = rgbVal;
+                    }
+                }
+                else {
+                    if(w%100 >= 50) { // && h%100 < 50
+                        CheckeredRgb = new Color(0, 0, 0).getRGB();
+                    }
+                    else {
+                        CheckeredRgb = rgbVal;
+                    }
+                }
+                newImg.setRGB( w, h, CheckeredRgb);
+            }
+            if(h%100 == 50 || h%100 == 0){
+                alternate = !alternate;
+            }
+        }
+        return newImg;
+    }
+
+    // From StackOverflow https://stackoverflow.com/questions/3514158/how-do-you-clone-a-bufferedimage
+    public BufferedImage deepCopy(BufferedImage bi) {
+        ColorModel cm = bi.getColorModel();
+        boolean isAlphaPremultiplied = cm.isAlphaPremultiplied();
+        WritableRaster raster = bi.copyData(null);
+        return new BufferedImage(cm, raster, isAlphaPremultiplied, null);
+    }
+
+    // Used for testing.
+    public boolean compare(BufferedImage img1, BufferedImage img2) {
+        boolean comp = true;
+        for(int h = 0; h < img1.getHeight(); h++)
+            for(int w = 0; w < img1.getWidth(); w++) {
+                int rgb1Val = img1.getRGB(w,h)>>16&0xFF;
+                int red1Val = rgb1Val&0xFF;
+                int blue1Val = rgb1Val>>8&0xFF;
+                int green1Val = rgb1Val>>16&0xFF;
+
+                int rgb2Val = img2.getRGB(w,h)>>16&0xFF;
+                int red2Val = rgb2Val&0xFF;
+                int blue2Val = rgb2Val>>8&0xFF;
+                int green2Val = rgb2Val>>16&0xFF;
+                if(red1Val != red2Val || green1Val != green2Val || blue1Val != blue2Val) {
+                    comp = false;
+                    break;
+                }
+            }
+        return comp;
+    }
+
+    // Used for debugging.
+    public void printColorArray(BufferedImage img) {
+        System.out.printf("Printing Color Array");
+        for(int h = 0; h < img.getHeight(); h++){
+            for(int w = 0; w < img.getWidth(); w++) {
+                String rgbString = "";
+                rgbString += "R: " + (img.getRGB(w,h)>>16&0xFF);
+                rgbString += " G: " + (img.getRGB(w,h)>>8&0xFF);
+                rgbString += " B: " + (img.getRGB(w,h)&0xFF);
+                System.out.print(rgbString + ", ");
+            }
+            System.out.println("");
+        }
     }
 }
